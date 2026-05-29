@@ -1,0 +1,24 @@
+# Development Dockerfile for frontend
+# Uses next dev for hot-reload on file changes
+
+FROM node:22-alpine
+
+WORKDIR /app
+
+# Copy dependency files
+COPY package*.json ./
+
+# Install all dependencies (including dev dependencies)
+RUN npm install --legacy-peer-deps
+
+# Copy source code (will be overridden by bind mount in dev)
+COPY . .
+
+EXPOSE 3000
+
+ENV NODE_ENV=development
+ENV PORT=3000
+
+# Use Next.js dev server with webpack (--no-turbopack) for reliable
+# file watching via polling inside Docker containers
+CMD npx next dev --turbopack -p 3000

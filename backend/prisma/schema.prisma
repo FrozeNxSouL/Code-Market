@@ -1,0 +1,143 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                  String   @id @default(uuid()) @map("user_id")
+  accountName         String   @map("user_account_name")
+  accountDescription  String?  @map("user_account_description")
+  accountImage        String?  @map("user_account_image")
+  type                String   @map("user_type") // e.g., 'ADMIN', 'SELLER', 'BUYER'
+  name                String   @map("user_name")
+  githubHandle        String?  @map("user_github")
+  accessToken         String?  @map("user_access_token") // Encrypted
+  phone               String?  @map("user_phone")
+  email               String   @unique @map("user_email")
+  password            String   @map("user_password")
+  status              String   @default("ACTIVE") @map("user_status")
+  createdAt           DateTime @default(now()) @map("user_date")
+
+  // Relationships
+  paymentAccounts     PaymentAccount[]
+  products            Product[]
+  feedbacks           ProductFeedback[]
+  transactions        Transaction[]
+
+  @@map("User")
+}
+
+model PaymentAccount {
+  id               String @id @default(uuid()) @map("payment_id")
+  userId           String @map("user_id")
+  accountNumber    String @map("payment_account")
+  bankType         String @map("payment_bank_type")
+
+  user             User   @relation(fields: [userId], references: [id])
+
+  @@map("Payment_account")
+}
+
+model Category {
+  id               String @id @default(uuid()) @map("category_id")
+  name             String @map("category_name")
+  level            Int    @map("category_level")
+  status           String @map("category_status")
+
+  // Relationships
+  productTags      ProductTag[]
+
+  @@map("Category")
+}
+
+model Product {
+  id               String   @id @default(uuid()) @map("product_id")
+  userId           String   @map("user_id")
+  name             String   @map("product_name")
+  description      String   @map("product_description")
+  images           String[] @map("product_images") // Array of URLs
+  score            Float    @default(0) @map("product_score")
+  price            Decimal  @map("product_price")
+  status           String   @map("product_status") // e.g., 'DRAFT', 'LIVE', 'MODERATION'
+  isPublished      Boolean  @default(false) @map("product_is_published")
+  createdAt        DateTime @default(now()) @map("product_date")
+
+  // Relationships
+  user             User              @relation(fields: [userId], references: [id])
+  feedbacks        ProductFeedback[]
+  transactions     Transaction[]
+  deployments      Deployment[]
+  tags             ProductTag[]
+
+  @@map("Product")
+}
+
+// Junction table from your ERD
+model ProductTag {
+  productId        String   @map("product_id")
+  categoryId       String   @map("category_id")
+  createdAt        DateTime @default(now()) @map("tag_date")
+
+  product          Product  @relation(fields: [productId], references: [id])
+  category         Category @relation(fields: [categoryId], references: [id])
+
+  @@id([productId, categoryId])
+  @@map("Product_tag")
+}
+
+model Deployment {
+  id               String   @id @default(uuid()) @map("deployment_id")
+  productId        String   @map("product_id")
+  sourceType       String   @map("deployment_source_type") // 'GITHUB' or 'ZIP'
+  repositoryUrl    String?  @map("deployment_repository_url")
+  branch           String?  @map("deployment_branch")
+  zipUrl           String?  @map("deployment_zip_url")
+  dockerComposePath String? @map("deployment_docker_compose_path")
+  envVariables     Json?    @map("deployment_env_variables")
+  buildStatus      String   @map("deployment_build_status") // 'PENDING', 'SUCCESS', 'FAILED'
+  createdAt        DateTime @default(now()) @map("deployment_date")
+
+  product          Product  @relation(fields: [productId], references: [id])
+
+  @@map("Deployment")
+}
+
+model ProductFeedback {
+  id               String   @id @default(uuid()) @map("feedback_id")
+  productId        String   @map("product_id")
+  userId           String   @map("user_id")
+  type             String   @map("feedback_type")
+  score            Int      @map("feedback_score")
+  text             String   @map("feedback_text")
+  images           String[] @map("feedback_images")
+  createdAt        DateTime @default(now()) @map("feedback_date")
+  status           String   @map("feedback_status")
+
+  product          Product  @relation(fields: [productId], references: [id])
+  user             User     @relation(fields: [userId], references: [id])
+
+  @@map("Product_feedback")
+}
+
+model Transaction {
+  id               String   @id @default(uuid()) @map("transaction_id")
+  productId        String   @map("product_id")
+  userId           String   @map("user_id")
+  createdAt        DateTime @default(now()) @map("transaction_date")
+  description      String   @map("transaction_description")
+  amount           Decimal  @map("transaction_amount")
+  sourceInfo       Json?  @map("transaction_source_information")
+  destInfo         Json?  @map("transaction_dest_information")
+  status           String   @map("transaction_status")
+
+  product          Product  @relation(fields: [productId], references: [id])
+  user             User     @relation(fields: [userId], references: [id])
+
+  @@map("Transaction")
+}
